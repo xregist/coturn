@@ -1,9 +1,24 @@
+12/11/2017 Oleg Moskalenko <mom040267@gmail.com>
+Version 4.5.0.8 'dan Eider':
+	- Spelling fixes.
+	- Add a warning if --lt-cred-mech and --use-auth-secret both presents.
+	- Revert "Add the realm parameter in the example config file (by Domenico)"
+	- Fix for Verbose config file option -v cli option overridea
+	- Add a Notice to config about realm default value is the domain name.
+	- Update total allocation usage on client shutdown
+
+12/10/2017 Oleg Moskalenko <mom040267@gmail.com>
+Version 4.5.0.7 'dan Eider':
+	- Misc security improvements.
+	
 10/17/2016 Oleg Moskalenko <mom040267@gmail.com>
 Version 4.5.0.6 'dan Eider':
 	- Typos in the text fixed.
 	- TLS1.2 support fixed.
 	- uclient minor performance tweak.
 	- Issue #113 fixed (by David Benjamin)
+	- Report total traffic used per allocation via Redis (by Bradley T. Hughes)
+	- Add the realm parameter in the example config file (by Domenico)
 
 08/27/2016 Oleg Moskalenko <mom040267@gmail.com>
 Version 4.5.0.5 'dan Eider':

@@ -39,6 +39,10 @@
 
 static int use_lt_credentials = 0;
 static int anon_credentials = 0;
+//long term credential
+static int use_ltc = 0;
+//timelimited long term credential
+static int use_tltc = 0;
 
 ////// ALPN //////////
 
@@ -598,6 +602,7 @@ static char Usage[] = "Usage: turnserver [options]\n"
 "						After the initialization, the turnserver process\n"
 "						will make an attempt to change the current group ID to that group.\n"
 " --mobility					Mobility with ICE (MICE) specs support.\n"
+" --no-http					Turn OFF the HTTP-Admin-Interface. By default it is always ON.\n"
 " --no-cli					Turn OFF the CLI support. By default it is always ON.\n"
 " --cli-ip=<IP>					Local system IP address to be used for CLI server endpoint. Default value\n"
 "						is 127.0.0.1.\n"
@@ -742,7 +747,8 @@ enum EXTRA_OPTS {
 	ADMIN_USER_QUOTA_OPT,
 	SERVER_NAME_OPT,
 	OAUTH_OPT,
-	PROD_OPT
+	PROD_OPT,
+	NO_HTTP_OPT
 };
 
 struct myoption {
@@ -849,6 +855,7 @@ static const struct myoption long_options[] = {
 				{ "cli-ip", required_argument, NULL, CLI_IP_OPT },
 				{ "cli-port", required_argument, NULL, CLI_PORT_OPT },
 				{ "cli-password", required_argument, NULL, CLI_PASSWORD_OPT },
+				{ "no-http", optional_argument, NULL, NO_HTTP_OPT },
 				{ "server-relay", optional_argument, NULL, SERVER_RELAY_OPT },
 				{ "cli-max-output-sessions", required_argument, NULL, CLI_MAX_SESSIONS_OPT },
 				{ "ec-curve-name", required_argument, NULL, EC_CURVE_NAME_OPT },
@@ -991,6 +998,9 @@ static void set_option(int c, char *value)
 	  break;
   case NO_CLI_OPT:
 	  use_cli = !get_bool_value(value);
+	  break;
+  case NO_HTTP_OPT:
+	  use_http = !get_bool_value(value);
 	  break;
   case CLI_IP_OPT:
 	  if(make_ioa_addr((const u08bits*)value,0,&cli_addr)<0) {
@@ -1138,10 +1148,12 @@ static void set_option(int c, char *value)
 		}
 		break;
 	case 'v':
-		if(get_bool_value(value)) {
-			turn_params.verbose = TURN_VERBOSE_NORMAL;
-		} else {
-			turn_params.verbose = TURN_VERBOSE_NONE;
+		if(turn_params.verbose != TURN_VERBOSE_EXTRA){
+			if(get_bool_value(value)) {
+				turn_params.verbose = TURN_VERBOSE_NORMAL;
+			} else {
+				turn_params.verbose = TURN_VERBOSE_NONE;
+			}
 		}
 		break;
 	case 'V':
@@ -1156,6 +1168,7 @@ static void set_option(int c, char *value)
 		if (get_bool_value(value)) {
 			turn_params.ct = TURN_CREDENTIALS_LONG_TERM;
 			use_lt_credentials=1;
+            use_ltc=1;
 		} else {
 			turn_params.ct = TURN_CREDENTIALS_UNDEFINED;
 			use_lt_credentials=0;
@@ -1217,12 +1230,14 @@ static void set_option(int c, char *value)
 #endif
 	case AUTH_SECRET_OPT:
 		turn_params.use_auth_secret_with_timestamp = 1;
+        use_tltc = 1;
 		turn_params.ct = TURN_CREDENTIALS_LONG_TERM;
 		use_lt_credentials = 1;
 		break;
 	case STATIC_AUTH_SECRET_VAL_OPT:
 		add_to_secrets_list(&turn_params.default_users_db.ram_db.static_auth_secrets,value);
 		turn_params.use_auth_secret_with_timestamp = 1;
+        use_tltc = 1;
 		turn_params.ct = TURN_CREDENTIALS_LONG_TERM;
 		use_lt_credentials = 1;
 		break;
@@ -1982,6 +1997,12 @@ int main(int argc, char **argv)
 		TURN_LOG_FUNC(TURN_LOG_LEVEL_ERROR, "\nCONFIG ERROR: -a and -z options cannot be used together.\n");
 		exit(-1);
 	}
+
+    if(use_ltc && use_tltc) {
+		TURN_LOG_FUNC(TURN_LOG_LEVEL_WARNING, "\nCONFIGURATION ALERT: You specified --lt-cred-mech and --use-auth-secret in the same time.\n"
+                       "Be aware that you could not mix the username/password and the shared secret based auth methohds. \n"
+                       "Shared secret overrides username/password based auth method. Check your configuration!\n");
+    }
 
 	if(!use_lt_credentials && !anon_credentials) {
 		if(turn_params.default_users_db.ram_db.users_number) {
